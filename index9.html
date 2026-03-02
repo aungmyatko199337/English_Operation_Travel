@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Star! 🌟 Learning Game</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&display=swap');
+
+  :root {
+    --sky: #6dd5fa;
+    --sky2: #2980b9;
+    --yellow: #FFD700;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --purple: #9b59b6;
+    --orange: #f39c12;
+    --white: #fff;
+    --card: rgba(255,255,255,0.92);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #6dd5fa 0%, #2980b9 50%, #1a1a6e 100%);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* STARS BACKGROUND */
+  .stars { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+  .star {
+    position:absolute;
+    background:#fff;
+    border-radius:50%;
+    animation: twinkle 2s infinite alternate;
+  }
+  @keyframes twinkle { from{opacity:0.2;transform:scale(1)} to{opacity:1;transform:scale(1.4)} }
+
+  /* CLOUDS */
+  .cloud {
+    position:fixed;
+    background:rgba(255,255,255,0.18);
+    border-radius:50px;
+    animation: floatCloud linear infinite;
+    pointer-events:none;
+    z-index:0;
+  }
+  @keyframes floatCloud { from{transform:translateX(-200px)} to{transform:translateX(110vw)} }
+
+  /* MAIN CONTAINER */
+  #app {
+    position:relative;
+    z-index:10;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:10px;
+  }
+
+  /* HUD */
+  #hud {
+    display:flex;
+    gap:12px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .hud-box {
+    background:rgba(255,255,255,0.15);
+    backdrop-filter:blur(8px);
+    border:2px solid rgba(255,255,255,0.4);
+    border-radius:20px;
+    padding:8px 20px;
+    color:#fff;
+    font-family:'Fredoka One',cursive;
+    font-size:1.1rem;
+    text-shadow:0 2px 4px rgba(0,0,0,0.3);
+    box-shadow:0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .hud-box span { font-size:1.3rem; }
+
+  /* GAME CARD */
+  #game-card {
+    background:var(--card);
+    border-radius:32px;
+    padding:28px 32px;
+    max-width:600px;
+    width:100%;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.3),
+      0 0 0 4px rgba(255,255,255,0.5),
+      inset 0 2px 0 rgba(255,255,255,0.8);
+    position:relative;
+    overflow:hidden;
+  }
+  #game-card::before {
+    content:'';
+    position:absolute;
+    top:-2px; left:-2px; right:-2px; bottom:-2px;
+    background:linear-gradient(135deg,#FFD700,#ff6b6b,#6dd5fa,#a8edea);
+    border-radius:34px;
+    z-index:-1;
+    animation: borderGlow 3s linear infinite;
+    background-size:300% 300%;
+  }
+  @keyframes borderGlow {
+    0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%}
+  }
+
+  /* CHARACTER */
+  #character {
+    text-align:center;
+    margin-bottom:12px;
+    position:relative;
+  }
+  #char-emoji {
+    font-size:4.5rem;
+    display:inline-block;
+    animation: charBounce 1s ease-in-out infinite;
+    filter:drop-shadow(0 8px 16px rgba(0,0,0,0.25));
+    cursor:default;
+  }
+  @keyframes charBounce {
+    0%,100%{transform:translateY(0) rotate(-3deg) scale(1)}
+    50%{transform:translateY(-12px) rotate(3deg) scale(1.05)}
+  }
+  #char-speech {
+    display:inline-block;
+    background:var(--yellow);
+    color:#333;
+    font-family:'Fredoka One',cursive;
+    font-size:1rem;
+    padding:8px 16px;
+    border-radius:20px;
+    margin-top:4px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    position:relative;
+  }
+  #char-speech::before {
+    content:'▲';
+    position:absolute;
+    top:-14px; left:50%;
+    transform:translateX(-50%);
+    color:var(--yellow);
+    font-size:1rem;
+  }
+  @keyframes popIn {
+    from{transform:scale(0.5);opacity:0}
+    to{transform:scale(1);opacity:1}
+  }
+
+  /* QUESTION */
+  #question-area { text-align:center; margin-bottom:20px; }
+  #level-badge {
+    display:inline-block;
+    background:linear-gradient(135deg,#f093fb,#f5576c);
+    color:#fff;
+    font-family:'Fredoka One',cursive;
+    font-size:0.85rem;
+    padding:4px 14px;
+    border-radius:20px;
+    margin-bottom:8px;
+    box-shadow:0 3px 10px rgba(245,87,108,0.4);
+  }
+  #question-text {
+    font-family:'Fredoka One',cursive;
+    font-size:1.55rem;
+    color:#2c3e50;
+    line-height:1.3;
+    text-shadow:0 2px 4px rgba(0,0,0,0.08);
+  }
+  #question-emoji { font-size:2rem; margin-right:8px; }
+  #progress-bar-wrap {
+    background:rgba(0,0,0,0.1);
+    border-radius:20px;
+    height:8px;
+    margin-top:10px;
+    overflow:hidden;
+  }
+  #progress-bar {
+    height:100%;
+    background:linear-gradient(90deg,#FFD700,#ff6b6b);
+    border-radius:20px;
+    transition:width 0.5s ease;
+  }
+
+  /* TIMER BAR */
+  #timer-wrap {
+    background:rgba(0,0,0,0.08);
+    border-radius:20px;
+    height:12px;
+    margin-bottom:18px;
+    overflow:hidden;
+    position:relative;
+  }
+  #timer-bar {
+    height:100%;
+    background:linear-gradient(90deg,#2ecc71,#f39c12,#e74c3c);
+    border-radius:20px;
+    transition:width 0.1s linear;
+    width:100%;
+  }
+
+  /* ANSWERS */
+  #answers {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .answer-btn {
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:#fff;
+    border:none;
+    border-radius:18px;
+    padding:14px 12px;
+    font-family:'Fredoka One',cursive;
+    font-size:1.05rem;
+    cursor:pointer;
+    transition:transform 0.15s, box-shadow 0.15s, background 0.2s;
+    box-shadow:0 6px 0 rgba(0,0,0,0.2), 0 8px 20px rgba(0,0,0,0.15);
+    position:relative;
+    overflow:hidden;
+    text-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .answer-btn::before {
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0; height:40%;
+    background:rgba(255,255,255,0.15);
+    border-radius:18px 18px 0 0;
+  }
+  .answer-btn:hover:not(:disabled) {
+    transform:translateY(-4px) scale(1.03);
+    box-shadow:0 10px 0 rgba(0,0,0,0.15), 0 12px 25px rgba(0,0,0,0.2);
+  }
+  .answer-btn:active:not(:disabled) {
+    transform:translateY(2px);
+    box-shadow:0 3px 0 rgba(0,0,0,0.2);
+  }
+  .answer-btn.correct {
+    background:linear-gradient(135deg,#2ecc71,#27ae60) !important;
+    animation:correctPulse 0.6s ease;
+    box-shadow:0 6px 0 rgba(0,0,0,0.2), 0 0 20px rgba(46,204,113,0.6);
+  }
+  .answer-btn.wrong {
+    background:linear-gradient(135deg,#e74c3c,#c0392b) !important;
+    animation:shake 0.5s ease;
+  }
+  @keyframes correctPulse {
+    0%{transform:scale(1)} 30%{transform:scale(1.15)} 60%{transform:scale(0.95)} 100%{transform:scale(1)}
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-8px)}
+    80%{transform:translateX(8px)}
+  }
+
+  /* SCREENS */
+  .screen {
+    text-align:center;
+    padding:20px;
+  }
+  .screen h1 {
+    font-family:'Fredoka One',cursive;
+    font-size:2.8rem;
+    color:#2c3e50;
+    margin-bottom:10px;
+  }
+  .screen p {
+    font-size:1.1rem;
+    color:#555;
+    margin-bottom:20px;
+    line-height:1.6;
+  }
+  .big-btn {
+    background:linear-gradient(135deg,#FFD700,#f39c12);
+    color:#fff;
+    border:none;
+    border-radius:20px;
+    padding:16px 40px;
+    font-family:'Fredoka One',cursive;
+    font-size:1.4rem;
+    cursor:pointer;
+    box-shadow:0 8px 0 rgba(0,0,0,0.2), 0 12px 30px rgba(243,156,18,0.4);
+    transition:transform 0.15s, box-shadow 0.15s;
+    text-shadow:0 2px 4px rgba(0,0,0,0.2);
+    margin:6px;
+    display:inline-block;
+  }
+  .big-btn:hover {
+    transform:translateY(-4px);
+    box-shadow:0 12px 0 rgba(0,0,0,0.15), 0 16px 35px rgba(243,156,18,0.5);
+  }
+  .big-btn.blue {
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    box-shadow:0 8px 0 rgba(0,0,0,0.2), 0 12px 30px rgba(102,126,234,0.4);
+  }
+
+  /* OVERLAY MESSAGES */
+  #overlay {
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(6px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    animation:fadeIn 0.3s ease;
+  }
+  #overlay.hidden { display:none; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  #overlay-box {
+    background:var(--card);
+    border-radius:32px;
+    padding:40px 50px;
+    text-align:center;
+    max-width:420px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.4);
+    animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  #overlay-emoji { font-size:5rem; margin-bottom:10px; display:block; }
+  #overlay-title {
+    font-family:'Fredoka One',cursive;
+    font-size:2rem;
+    color:#2c3e50;
+    margin-bottom:8px;
+  }
+  #overlay-msg { font-size:1.1rem; color:#555; margin-bottom:20px; }
+
+  /* STARS REWARD */
+  .reward-stars {
+    font-size:2rem;
+    margin:10px 0;
+    animation:starSpin 0.8s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes starSpin {
+    from{transform:scale(0) rotate(-180deg)} to{transform:scale(1) rotate(0)}
+  }
+
+  /* CONFETTI */
+  .confetti {
+    position:fixed;
+    width:10px; height:10px;
+    border-radius:2px;
+    pointer-events:none;
+    z-index:200;
+    animation:confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0%{transform:translateY(-20px) rotate(0deg); opacity:1}
+    100%{transform:translateY(100vh) rotate(720deg); opacity:0}
+  }
+
+  /* FLOATING +SCORE */
+  .score-pop {
+    position:fixed;
+    font-family:'Fredoka One',cursive;
+    font-size:2rem;
+    color:#FFD700;
+    text-shadow:0 2px 8px rgba(0,0,0,0.5);
+    pointer-events:none;
+    z-index:150;
+    animation:scorePop 1s ease forwards;
+  }
+  @keyframes scorePop {
+    0%{transform:translateY(0) scale(1); opacity:1}
+    100%{transform:translateY(-80px) scale(1.5); opacity:0}
+  }
+
+  /* LEVEL UP */
+  #level-up-flash {
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(255,215,0,0.3);
+    pointer-events:none;
+    z-index:90;
+    animation:levelFlash 0.6s ease forwards;
+    display:none;
+  }
+  @keyframes levelFlash {
+    0%{opacity:0} 30%{opacity:1} 100%{opacity:0}
+  }
+
+  /* RESPONSIVE */
+  @media(max-width:480px) {
+    #question-text { font-size:1.25rem; }
+    .answer-btn { font-size:0.95rem; padding:12px 8px; }
+    #game-card { padding:20px 16px; }
+    .screen h1 { font-size:2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div id="level-up-flash"></div>
+
+<div id="app">
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-box">⭐ Score: <span id="score-display">0</span></div>
+    <div class="hud-box">🏆 Level: <span id="level-display">1</span></div>
+    <div class="hud-box">❓ Q: <span id="q-display">1</span>/10</div>
+    <div class="hud-box">💎 Streak: <span id="streak-display">0</span></div>
+  </div>
+
+  <!-- GAME CARD -->
+  <div id="game-card">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen">
+      <div style="font-size:5rem; margin-bottom:10px; animation:charBounce 1s infinite">🌟</div>
+      <h1>English Star!</h1>
+      <p>Learn English words with fun! Answer questions, earn stars, and become an <strong>English Champion!</strong> 🏆</p>
+      <div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px; flex-wrap:wrap;">
+        <div style="background:#f8f9fa; border-radius:12px; padding:10px 16px; font-size:0.85rem; color:#555">
+          ⏱️ 15 sec per question
+        </div>
+        <div style="background:#f8f9fa; border-radius:12px; padding:10px 16px; font-size:0.85rem; color:#555">
+          📚 3 Levels
+        </div>
+        <div style="background:#f8f9fa; border-radius:12px; padding:10px 16px; font-size:0.85rem; color:#555">
+          🎯 10 Questions
+        </div>
+      </div>
+      <button class="big-btn" onclick="startGame()">🚀 Play Now!</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="hidden">
+      <div id="character">
+        <span id="char-emoji">🦊</span>
+        <div><span id="char-speech">Let's go! You can do it! 💪</span></div>
+      </div>
+
+      <div id="question-area">
+        <div id="level-badge">⭐ Level 1 - Beginner</div>
+        <div style="height:10px"></div>
+        <div id="timer-wrap"><div id="timer-bar"></div></div>
+        <div id="question-text"><span id="question-emoji"></span><span id="question-body"></span></div>
+        <div id="progress-bar-wrap"><div id="progress-bar" style="width:10%"></div></div>
+        <div style="color:#999; font-size:0.8rem; margin-top:4px; font-weight:700">Question <span id="qnum">1</span> of 10</div>
+      </div>
+
+      <div id="answers"></div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen hidden">
+      <div id="end-emoji" style="font-size:5rem; margin-bottom:10px">🏆</div>
+      <h1 id="end-title">Amazing!</h1>
+      <div id="end-stars" class="reward-stars"></div>
+      <p id="end-msg"></p>
+      <div style="background:#f8f9fa; border-radius:16px; padding:16px; margin:15px 0">
+        <div style="font-family:'Fredoka One',cursive; font-size:1.2rem; color:#2c3e50">
+          Final Score: <span id="final-score" style="color:#f39c12; font-size:1.6rem"></span>
+        </div>
+        <div style="color:#888; font-size:0.9rem; margin-top:4px">Level Reached: <span id="final-level" style="font-weight:800; color:#9b59b6"></span></div>
+      </div>
+      <button class="big-btn" onclick="restartGame()">🔄 Play Again!</button>
+      <button class="big-btn blue" onclick="showStart()">🏠 Home</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- OVERLAY for feedback -->
+<div id="overlay" class="hidden">
+  <div id="overlay-box">
+    <span id="overlay-emoji"></span>
+    <div id="overlay-title"></div>
+    <div id="overlay-msg"></div>
+    <button class="big-btn" onclick="nextQuestion()" id="overlay-btn">Next ➡️</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// AUDIO ENGINE (Web Audio API - no external files needed!)
+// ============================================================
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, type, duration, vol=0.3) {
+  try {
+    const o = AC.createOscillator();
+    const g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type = type; o.frequency.setValueAtTime(freq, AC.currentTime);
+    g.gain.setValueAtTime(vol, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + duration);
+    o.start(); o.stop(AC.currentTime + duration);
+  } catch(e){}
+}
+
+function playCorrect() {
+  playTone(523, 'sine', 0.15, 0.4);
+  setTimeout(()=>playTone(659, 'sine', 0.15, 0.4), 100);
+  setTimeout(()=>playTone(784, 'sine', 0.25, 0.4), 200);
+  setTimeout(()=>playTone(1047, 'sine', 0.4, 0.5), 320);
+}
+
+function playWrong() {
+  playTone(300, 'sawtooth', 0.15, 0.25);
+  setTimeout(()=>playTone(220, 'sawtooth', 0.3, 0.4), 150);
+}
+
+function playLevelUp() {
+  [523,659,784,1047,1319].forEach((f,i)=> setTimeout(()=>playTone(f,'sine',0.25,0.5), i*100));
+}
+
+function playTick() { playTone(800,'square',0.05,0.05); }
+
+function playBgMusic() {
+  // Simple catchy melody loop
+  const melody = [523,587,659,698,784,698,659,587,523];
+  let i=0;
+  setInterval(()=>{
+    playTone(melody[i%melody.length],'sine',0.4,0.08);
+    i++;
+  }, 600);
+}
+
+// ============================================================
+// QUESTIONS BANK (10 questions, 3 levels)
+// ============================================================
+const questions = [
+  // Level 1 - Beginner (Q1-3)
+  { level:1, emoji:'🍎', q:'What is this fruit called?', options:['Apple','Banana','Orange','Mango'], answer:0 },
+  { level:1, emoji:'🐱', q:'What animal says "Meow"?', options:['Dog','Cat','Bird','Fish'], answer:1 },
+  { level:1, emoji:'🌈', q:'What colors are in a rainbow?', options:['Only blue','Only red','Many colors','Only green'], answer:2 },
+  // Level 2 - Explorer (Q4-7)
+  { level:2, emoji:'📝', q:'Choose the correct spelling:', options:['Schol','School','Skool','Schole'], answer:1 },
+  { level:2, emoji:'🌙', q:'"The _____ is shining tonight." Fill in:', options:['Sun','Cloud','Moon','Star'], answer:2 },
+  { level:2, emoji:'🏃', q:'What is the opposite of "fast"?', options:['Quick','Swift','Slow','Big'], answer:2 },
+  { level:2, emoji:'❤️', q:'"I ___ you!" — Which word fits?', options:['hate','love','see','find'], answer:1 },
+  // Level 3 - Champion (Q8-10)
+  { level:3, emoji:'📖', q:'Which word means "very happy"?', options:['Sad','Angry','Joyful','Tired'], answer:2 },
+  { level:3, emoji:'🦁', q:'The lion is the _____ of the jungle.', options:['baby','king','queen','child'], answer:1 },
+  { level:3, emoji:'🌍', q:'"She _____ to school every day." — Correct form:', options:['go','going','goes','gone'], answer:2 },
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let score = 0, level = 1, currentQ = 0, streak = 0;
+let timerInterval = null, timerLeft = 15;
+let answered = false;
+let bgStarted = false;
+
+const characters = ['🦊','🐼','🦄','🐸','🦋','🦁'];
+const motivational = {
+  correct: ['⭐ Great Job!','🌟 You\'re a Star!','🎯 Correct! Brilliant!','🏆 Champion Move!','💥 Super Smart!'],
+  wrong: ['💪 Try Again!','🌈 Almost There!','🔥 Keep Going, Champion!','😊 You Got This!','🎮 Level Up Next Time!'],
+  streak3: ['🔥 3 in a Row! AMAZING!','⚡ Hat Trick! You Rock!'],
+};
+
+function getMotiv(type) {
+  const arr = motivational[type];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+// ============================================================
+// INIT BACKGROUND
+// ============================================================
+function initStars() {
+  const c = document.getElementById('stars');
+  for(let i=0;i<60;i++){
+    const s = document.createElement('div');
+    s.className='star';
+    const sz = Math.random()*3+1;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s`;
+    c.appendChild(s);
+  }
+  // Clouds
+  for(let i=0;i<4;i++){
+    const cl = document.createElement('div');
+    cl.className='cloud';
+    const w=100+Math.random()*200, h=40+Math.random()*30;
+    cl.style.cssText=`width:${w}px;height:${h}px;top:${10+Math.random()*40}%;animation-duration:${20+Math.random()*20}s;animation-delay:${-Math.random()*20}s;opacity:${0.1+Math.random()*0.2}`;
+    document.body.appendChild(cl);
+  }
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(id) {
+  ['start-screen','game-screen','end-screen'].forEach(s=>{
+    document.getElementById(s).classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='game-screen') {
+    document.getElementById('hud').classList.remove('hidden');
+  } else {
+    document.getElementById('hud').classList.add('hidden');
+  }
+}
+
+function showStart() {
+  clearTimer();
+  showScreen('start-screen');
+  document.getElementById('hud').classList.add('hidden');
+}
+
+function startGame() {
+  if(!bgStarted) { playBgMusic(); bgStarted=true; }
+  score=0; level=1; currentQ=0; streak=0;
+  updateHUD();
+  showScreen('game-screen');
+  loadQuestion();
+}
+
+function restartGame() { startGame(); }
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD() {
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('level-display').textContent = level;
+  document.getElementById('q-display').textContent = currentQ+1;
+  document.getElementById('streak-display').textContent = streak;
+}
+
+// ============================================================
+// QUESTION
+// ============================================================
+function loadQuestion() {
+  if(currentQ >= questions.length) { endGame(); return; }
+  answered = false;
+  const q = questions[currentQ];
+  level = q.level;
+
+  // Determine level badge
+  const badges = ['','⭐ Level 1 - Beginner','🌟 Level 2 - Explorer','🏆 Level 3 - Champion'];
+  document.getElementById('level-badge').textContent = badges[level];
+
+  // Character
+  const char = characters[Math.floor(Math.random()*characters.length)];
+  document.getElementById('char-emoji').textContent = char;
+  const speeches = ['You can do it! 💪','Think carefully! 🤔','I believe in you! ⭐','Take your time! ⏱️'];
+  document.getElementById('char-speech').textContent = speeches[Math.floor(Math.random()*speeches.length)];
+  document.getElementById('char-speech').style.animation='none';
+  setTimeout(()=>document.getElementById('char-speech').style.animation='',10);
+
+  // Question
+  document.getElementById('question-emoji').textContent = q.emoji+' ';
+  document.getElementById('question-body').textContent = q.q;
+  document.getElementById('qnum').textContent = currentQ+1;
+
+  // Progress bar
+  document.getElementById('progress-bar').style.width = ((currentQ/10)*100)+'%';
+
+  // Answers
+  const container = document.getElementById('answers');
+  container.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span style="font-size:1.3rem">${['🅰️','🅱️','🅾️','🆕'][i]}</span><br>${opt}`;
+    btn.onclick = () => selectAnswer(i, btn);
+    container.appendChild(btn);
+  });
+
+  updateHUD();
+  startTimer();
+}
+
+// ============================================================
+// TIMER
+// ============================================================
+function startTimer() {
+  clearTimer();
+  timerLeft = 15;
+  updateTimerBar();
+  timerInterval = setInterval(()=>{
+    timerLeft -= 0.1;
+    updateTimerBar();
+    if(timerLeft <= 3) playTick();
+    if(timerLeft <= 0) {
+      clearTimer();
+      if(!answered) timeOut();
+    }
+  }, 100);
+}
+
+function clearTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function updateTimerBar() {
+  const pct = Math.max(0,(timerLeft/15)*100);
+  document.getElementById('timer-bar').style.width = pct+'%';
+}
+
+function timeOut() {
+  answered = true;
+  // Show correct answer
+  const btns = document.querySelectorAll('.answer-btn');
+  btns[questions[currentQ].answer].classList.add('correct');
+  streak = 0;
+  showOverlay('⏰', "Time's Up!", "The correct answer is highlighted! 📚", false);
+}
+
+// ============================================================
+// ANSWER SELECTION
+// ============================================================
+function selectAnswer(idx, btn) {
+  if(answered) return;
+  answered = true;
+  clearTimer();
+
+  const q = questions[currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b=>b.disabled=true);
+
+  if(idx === q.answer) {
+    // CORRECT
+    btn.classList.add('correct');
+    playCorrect();
+    const points = level * 10;
+    score += points;
+    streak++;
+
+    // Floating score
+    floatScore(`+${points}`, btn);
+
+    // Confetti
+    launchConfetti();
+
+    // Check streak
+    let msg = getMotiv('correct');
+    if(streak >= 3) { msg = getMotiv('streak3'); playLevelUp(); levelUpFlash(); }
+
+    // Check level up
+    const prevLevel = level;
+    if(currentQ === 2) {} // already set by question
+    
+    setTimeout(()=>{
+      showOverlay('✅', msg, `You earned ${points} points! Score: ${score} ⭐`, true);
+    }, 500);
+
+  } else {
+    // WRONG
+    btn.classList.add('wrong');
+    btns[q.answer].classList.add('correct');
+    playWrong();
+    streak = 0;
+
+    const msg = getMotiv('wrong');
+    setTimeout(()=>{
+      showOverlay('❌', msg, `The correct answer was: "${q.options[q.answer]}" 📖`, false);
+    }, 500);
+  }
+  updateHUD();
+}
+
+// ============================================================
+// OVERLAY
+// ============================================================
+function showOverlay(emoji, title, msg, correct) {
+  document.getElementById('overlay-emoji').textContent = emoji;
+  document.getElementById('overlay-title').textContent = title;
+  document.getElementById('overlay-msg').textContent = msg;
+  document.getElementById('overlay').classList.remove('hidden');
+
+  const box = document.getElementById('overlay-box');
+  box.style.borderTop = correct ? '4px solid #2ecc71' : '4px solid #e74c3c';
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function nextQuestion() {
+  hideOverlay();
+  currentQ++;
+  loadQuestion();
+}
+
+// ============================================================
+// EFFECTS
+// ============================================================
+function floatScore(text, btn) {
+  const el = document.createElement('div');
+  el.className = 'score-pop';
+  el.textContent = text;
+  const r = btn.getBoundingClientRect();
+  el.style.left = r.left + r.width/2 + 'px';
+  el.style.top = r.top + 'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1100);
+}
+
+function launchConfetti() {
+  const colors=['#FFD700','#ff6b6b','#6dd5fa','#2ecc71','#f39c12','#9b59b6','#e74c3c'];
+  for(let i=0;i<30;i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.cssText=`
+      left:${Math.random()*100}vw;
+      top:-10px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      width:${8+Math.random()*8}px;
+      height:${8+Math.random()*8}px;
+      animation-duration:${1+Math.random()*2}s;
+      animation-delay:${Math.random()*0.5}s;
+      transform:rotate(${Math.random()*360}deg);
+    `;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 3000);
+  }
+}
+
+function levelUpFlash() {
+  const el = document.getElementById('level-up-flash');
+  el.style.display='block';
+  el.style.animation='none';
+  setTimeout(()=>{ el.style.animation='levelFlash 0.6s ease forwards'; }, 10);
+  setTimeout(()=>{ el.style.display='none'; }, 700);
+}
+
+// ============================================================
+// END GAME
+// ============================================================
+function endGame() {
+  showScreen('end-screen');
+  clearTimer();
+
+  const pct = (score / 300) * 100;
+  let stars='', emoji='', title='', msg='';
+
+  if(pct >= 80) {
+    stars='⭐⭐⭐'; emoji='🏆'; title='You\'re an English Star!';
+    msg = `Incredible! You scored ${score} points! You are a true English Champion! 🌟`;
+    playLevelUp();
+    launchConfetti();
+    setTimeout(launchConfetti,600);
+  } else if(pct >= 50) {
+    stars='⭐⭐'; emoji='🎉'; title='Great Job, Champion!';
+    msg = `Well done! You scored ${score} points! Keep practicing and you\'ll be a Star! 💪`;
+    playCorrect();
+  } else {
+    stars='⭐'; emoji='🌈'; title='Keep Going, You Got This!';
+    msg = `You scored ${score} points! Every try makes you better. Play again! 🔥`;
+  }
+
+  document.getElementById('end-emoji').textContent = emoji;
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-stars').textContent = stars;
+  document.getElementById('end-msg').textContent = msg;
+  document.getElementById('final-score').textContent = score;
+
+  const lvlNames=['','Beginner','Explorer','Champion'];
+  document.getElementById('final-level').textContent = lvlNames[level] || 'Champion';
+}
+
+// ============================================================
+// SCRATCH GUIDE TOGGLE (bonus info)
+// ============================================================
+
+// ============================================================
+// INIT
+// ============================================================
+initStars();
+</script>
+
+<!-- SCRATCH INSTRUCTIONS PANEL (scrollable, hidden by default) -->
+<div id="scratch-guide" style="display:none"></div>
+
+</body>
+</html>
